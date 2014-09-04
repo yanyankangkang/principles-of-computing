@@ -1,0 +1,99 @@
+"""
+Monte Carlo Tic-Tac-Toe Player
+"""
+
+import random
+import poc_ttt_gui
+import poc_ttt_provided as provided
+EMPTY = 1
+PLAYERX = 2
+PLAYERO = 3 
+DRAW = 4
+# Constants for Monte Carlo simulator
+# Change as desired
+NTRIALS = 100    # Number of trials to run
+MCMATCH = 1.0  # Score for squares played by the machine player
+MCOTHER = 2.0  # Score for squares played by the other player
+    
+def mc_trial(board, player): 
+    '''
+     random simulater outcome of game
+    '''
+    dim  = board.get_dim()
+    while not board.check_win():
+        board_x0_ = random.randrange(dim)
+        board_y0_ = random.randrange(dim)
+        while board.square( board_x0_,board_y0_) != EMPTY:
+           board_x0_ = random.randrange(dim)
+           board_y0_= random.randrange(dim)
+        board.move( board_x0_,board_y0_,player)
+        player = provided.switch_player(player)
+       
+            
+
+def mc_update_scores(scores, board, player):
+    '''
+    update scores 
+    '''
+    machine_value = 0
+    human_value = 0
+    dim = board.get_dim()
+    winner = board.check_win()
+    if winner == player:
+        machine_value = MCMATCH
+        human_value = -MCOTHER
+    else:
+        machine_value = -MCMATCH
+        human_value = MCOTHER
+    if winner == DRAW:
+       return 
+    for board_i0_ in range(dim):
+       for board_j0_ in range(dim):
+          if board.square(board_i0_,board_j0_) == player:
+             scores[board_i0_][board_j0_] += machine_value
+          elif board.square(board_i0_,board_j0_) != EMPTY: 
+             scores[board_i0_][board_j0_] += human_value
+           
+def get_best_move(board, scores):
+    '''
+    choose the best way
+    '''
+    best = float('-inf')
+    best_move = []
+
+    empty_square = board.get_empty_squares()
+    if empty_square == []:
+        return None
+    for pos in empty_square:
+        board_i0_ = pos[0]
+        board_j0_ = pos[1]
+        if scores[board_i0_][board_j0_] > best:
+                best_move = [[board_i0_, board_j0_]]
+                best = scores[board_i0_][ board_j0_]
+        elif scores[board_i0_][ board_j0_] == best:
+                best_move.append([board_i0_, board_j0_])
+    index = best_move[random.randrange(len(best_move))]   
+    return tuple(index)
+#print get_best_move(provided.TTTBoard(2, False, [[EMPTY, EMPTY], [EMPTY, EMPTY]]), [[0, 0], [3, 0]])
+#mc_move(provided.TTTBoard(3, False, [[PLAYERX, PLAYERX, PLAYERO], [EMPTY, PLAYERX, PLAYERX], [PLAYERO, EMPTY, PLAYERO]]), PLAYERO, NTRIALS)
+def mc_move(board, player, trials):
+    '''
+    Monte Carlo
+    '''
+    dummy_dim = board.get_dim()
+    scores = [[0 for dummycol in range(dummy_dim)] 
+              for dummyrow in range(dummy_dim)]
+    while trials:
+        board1 = board.clone()
+        mc_trial(board1, player)
+        mc_update_scores(scores, board1, player)
+        trials -= 1
+    return get_best_move(board, scores)  
+        
+# Test game with the console or the GUI.
+# Uncomment whichever you prefer.
+# Both should be commented out when you submit for
+# testing to save time.
+
+#provided.play_game(mc_move, NTRIALS, False)        
+poc_ttt_gui.run_gui(3, provided.PLAYERX, mc_move, NTRIALS, False)
